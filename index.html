@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <title>ٌRoma Padel Management System</title>
+    <style>
+        :root { --roma-green: #008C45; --hero-blue: #1e3a8a; --smash-orange: #e67e22; --exp-red: #c0392b; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; background: #e2e8f0; color: #64748b; }
+        .tab-btn.active.roma { background: var(--roma-green); color: white; }
+        .tab-btn.active.hero { background: var(--hero-blue); color: white; }
+        .tab-btn.active.smash { background: var(--smash-orange); color: white; }
+        .tab-btn.active.expenses { background: var(--exp-red); color: white; }
+
+        .header { text-align: center; margin-bottom: 15px; }
+        textarea.main-input { width: 100%; height: 90px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 15px; resize: none; box-sizing: border-box; }
+        .btn-process { width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; border: none; color: white; margin-bottom: 25px; }
+        .btn-roma { background: var(--roma-green); } .btn-hero { background: var(--hero-blue); } .btn-smash { background: var(--smash-orange); } .btn-exp { background: var(--exp-red); }
+
+        .copy-layout { display: flex; gap: 10px; margin-bottom: 25px; min-height: 300px; overflow-x: auto; }
+        .copy-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; flex: 1; display: flex; flex-direction: column; min-width: 200px; }
+        .box-header { padding: 8px; background: #f8fafc; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .box-header span { font-weight: bold; font-size: 10px; color: #475569; }
+        .result-area { width: 100%; height: 280px; border: none; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre; overflow: auto; line-height: 1.8; outline: none; box-sizing: border-box; }
+        .btn-copy { background: #334155; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 9px; }
+
+        .totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .total-card { padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; }
+        .bg-cash { background: #1e293b; } .bg-insta { background: #3b82f6; } .bg-rev { background: #8e44ad; } .bg-grand { background: #10b981; } .bg-exp-card { background: #c0392b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <button id="tabRoma" class="tab-btn active roma" onclick="switchMode('roma')">Roma Padel</button>
+        <button id="tabHero" class="tab-btn hero" onclick="switchMode('hero')">Hero Academy</button>
+        <button id="tabSmash" class="tab-btn smash" onclick="switchMode('smash')">Smash Academy</button>
+        <button id="tabExpenses" class="tab-btn expenses" onclick="switchMode('expenses')">Expenses Analysis</button>
+    </div>
+
+    <div class="header">
+        <h2 id="modeTitle" style="margin:0; color: var(--roma-green);">Roma Padel Daily Management</h2>
+    </div>
+
+    <textarea id="smartInput" class="main-input" placeholder="الصق البيانات هنا..."></textarea>
+    <button id="processBtn" class="btn-process btn-roma" onclick="processData()">تحليل البيانات والحسابات ⚡</button>
+
+    <div id="outputContainer" class="copy-layout"></div>
+    <div id="totalsContainer" class="totals-grid"></div>
+</div>
+
+<script>
+    let currentMode = 'roma';
+
+    function switchMode(mode) {
+        currentMode = mode;
+        const tabs = ['roma', 'hero', 'smash', 'expenses'];
+        tabs.forEach(t => document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', mode === t));
+        
+        const title = document.getElementById('modeTitle');
+        const procBtn = document.getElementById('processBtn');
+
+        const configs = {
+            roma: { title: "Roma Padel Management", color: "var(--roma-green)", btn: "btn-roma" },
+            hero: { title: "Hero Academy Statement", color: "var(--hero-blue)", btn: "btn-hero" },
+            smash: { title: "Smash Academy Statement", color: "var(--smash-orange)", btn: "btn-smash" },
+            expenses: { title: "Swell Lake Expenses Analysis", color: "var(--exp-red)", btn: "btn-exp" }
+        };
+
+        title.innerText = configs[mode].title;
+        title.style.color = configs[mode].color;
+        procBtn.className = "btn-process " + configs[mode].btn;
+
+        document.getElementById('smartInput').value = "";
+        document.getElementById('outputContainer').innerHTML = "";
+        document.getElementById('totalsContainer').innerHTML = "";
+    }
+
+    function processData() {
+        const input = document.getElementById('smartInput').value;
+        if (!input.trim()) return alert("يرجى لصق بيانات أولاً!");
+        const lines = input.split('\n');
+        
+        let dateMatch = input.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+        let date = dateMatch ? dateMatch[0] : "";
+        let day = "";
+        if(dateMatch) {
+            const [d, m, y] = date.split('/');
+            day = new Intl.DateTimeFormat('en-US', {weekday: 'long'}).format(new Date(y, m-1, d));
+        }
+
+        if (currentMode === 'roma') handleRoma(lines, date, day);
+        else if (currentMode === 'hero') handleAcademy(lines, date, day, 300);
+        else if (currentMode === 'smash') handleAcademy(lines, date, day, 350);
+        else if (currentMode === 'expenses') handleExpensesAnalysis(lines);
+    }
+
+    function handleRoma(lines, date, day) {
+        let main = "", fees = "", pay = "", court = "";
+        let cashSum = 0, instaSum = 0; let crossed = false;
+
+        lines.forEach(line => {
+            let cl = line.trim().toLowerCase();
+            if (cl.includes("from") || cl.includes("من")) {
+                let times = cl.match(/\d{1,2}:\d{2}/g); if (!times) return;
+                let s = times[0].split(':').map(Number), e = times[1].split(':').map(Number);
+                let diff = (e[0]*60+e[1]) - (s[0]*60+s[1]); if (diff <= 0) diff += 720;
+                let period = (crossed || (s[0] >= 1 && s[0] < 7)) ? "AM" : "PM";
+                let ePeriod = period; if ((e[0]*60+e[1]) < (s[0]*60+s[1]) || (s[0]==11 && e[0]==12)) { ePeriod="AM"; crossed=true; }
+                
+                let c = extractVal(cl, "cash"), i = extractVal(cl, "insta") || extractVal(cl, "instapay");
+                cashSum += c; instaSum += i;
+                main += `${date}\t${day}\t${times[0]} ${period}\t${times[1]} ${ePeriod}\t${(diff/60).toFixed(1)}\n`;
+                fees += `${c+i}\n`; pay += `${(c>0&&i>0)?"Both":(c>0?"Cash":(i>0?"Transfer":"N/A"))}\n`;
+                court += `${(cl.includes("single")||cl.includes("solo"))?"Solo":"Double"}\n`;
+            }
+        });
+        renderOutput([{l:'Main Data', v:main}, {l:'Fees', v:fees}, {l:'Payment', v:pay}, {l:'Court', v:court}]);
+        renderTotals([{l:'CASH', v:cashSum, c:'bg-cash'}, {l:'INSTA', v:instaSum, c:'bg-insta'}, {l:'GRAND', v:cashSum+instaSum, c:'bg-grand'}]);
+    }
+
+    function handleAcademy(lines, date, day, highRate) {
+        let d1="", d2="", d3="", d4="", total = 0;
+        lines.forEach(line => {
+            let cl = line.trim().toLowerCase();
+            if (cl.includes("from")) {
+                let times = cl.match(/\d{1,2}:\d{2}/g); if (!times) return;
+                let s = times[0].split(':').map(Number), e = times[1].split(':').map(Number);
+                let diff = (e[0]*60+e[1]) - (s[0]*60+s[1]); if (diff <= 0) diff += 720;
+                let h = diff/60;
+                let court = cl.match(/court\s*(\d+)/) ? cl.match(/court\s*(\d+)/)[1] : "1";
+                let price = calcPrice( (s[0]<12?s[0]+12:s[0]), h, highRate); total += price;
+                d1 += `${date}\t${day}\t${court}\n`;
+                d2 += `${times[0]} PM\t${times[1]} ${ (e[0]*60+e[1]) < (s[0]*60+s[1]) ? 'AM' : 'PM'}\n`;
+                d3 += `${h.toFixed(1)}\n`; d4 += `${price}\n`;
+            }
+        });
+        renderOutput([{l:'Date/Day/Court', v:d1}, {l:'Time From/To', v:d2}, {l:'Hours', v:d3}, {l:'Fees', v:d4}]);
+        renderTotals([{l:'ACADEMY TOTAL', v:total, c:'bg-rev'}]);
+    }
+
+    function handleExpensesAnalysis(lines) {
+        let cats = { cleaning: 0, uber: 0, meal: 0, electricity: 0, other: 0 };
+        let logs = { cleaning: "", uber: "", meal: "", electricity: "", other: "" };
+        lines.forEach(line => {
+            let cl = line.trim().toLowerCase();
+            if (cl.includes("mr.pier") || cl.includes("mr. pier")) return;
+            let amountMatch = cl.match(/(\d+[\d,.]*)/); if (!amountMatch) return;
+            let val = parseFloat(amountMatch[0].replace(/,/g, ''));
+            if (cl.includes("cleaning")) { cats.cleaning += val; logs.cleaning += val + "\n"; }
+            else if (cl.includes("uber") || cl.includes("uper")) { cats.uber += val; logs.uber += val + "\n"; }
+            else if (cl.includes("meal") || cl.includes("iftar")) { cats.meal += val; logs.meal += val + "\n"; }
+            else if (cl.includes("electricity") || cl.includes("كهرباء")) { cats.electricity += val; logs.electricity += val + "\n"; }
+            else { cats.other += val; logs.other += val + " (" + cl.substring(0, 10) + ")\n"; }
+        });
+        renderOutput([{l:'Cleaning', v:logs.cleaning}, {l:'Uber', v:logs.uber}, {l:'Meals', v:logs.meal}, {l:'Electricity', v:logs.electricity}, {l:'Other/Voda', v:logs.other}]);
+        renderTotals([{l:'CLEANING', v:cats.cleaning, c:'bg-exp-card'}, {l:'UBER', v:cats.uber, c:'bg-exp-card'}, {l:'MEALS', v:cats.meal, c:'bg-exp-card'}, {l:'ELEC', v:cats.electricity, c:'bg-exp-card'}, {l:'GRAND EXP', v:Object.values(cats).reduce((a,b)=>a+b,0), c:'bg-grand'}]);
+    }
+
+    function calcPrice(start, dur, highRate) {
+        let t = 0, curr = start, rem = dur;
+        while (rem > 0) {
+            let step = Math.min(rem, 1);
+            if (curr < 19) t += step * 150; else if (curr < 21) t += step * 200; else t += step * highRate;
+            curr = (curr + 1) % 24; rem -= step;
+        } return t;
+    }
+
+    function extractVal(line, key) {
+        let r = new RegExp(`(\\d+)\\s+${key}`); let m = line.match(r);
+        if(!m) { r = new RegExp(`${key}\\s+(\\d+)`); m = line.match(r); }
+        return m ? parseInt(m[1]) : 0;
+    }
+
+    function renderOutput(boxes) {
+        document.getElementById('outputContainer').innerHTML = boxes.map((b, i) => `
+            <div class="copy-box"><div class="box-header"><span>${b.l}</span><button class="btn-copy" onclick="copyId('res${i}')">Copy</button></div>
+            <textarea id="res${i}" class="result-area" readonly>${b.v}</textarea></div>`).join('');
+    }
+
+    function renderTotals(cards) {
+        document.getElementById('totalsContainer').innerHTML = cards.map(c => `
+            <div class="total-card ${c.c}"><span>${c.l}</span><div>${c.v.toLocaleString()}</div></div>`).join('');
+    }
+
+    function copyId(id) { document.getElementById(id).select(); document.execCommand('copy'); }
+    window.onload = () => switchMode('roma');
+</script>
+</body>
+</html>ٍ
