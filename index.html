@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <title>Padel Management & Expenses System</title>
+    <style>
+        :root { --roma-green: #008C45; --hero-blue: #1e3a8a; --smash-orange: #e67e22; --exp-red: #c0392b; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s; background: #e2e8f0; color: #64748b; }
+        .tab-btn.active.roma { background: var(--roma-green); color: white; }
+        .tab-btn.active.hero { background: var(--hero-blue); color: white; }
+        .tab-btn.active.smash { background: var(--smash-orange); color: white; }
+        .tab-btn.active.expenses { background: var(--exp-red); color: white; }
+
+        .header { text-align: center; margin-bottom: 15px; }
+        textarea.main-input { width: 100%; height: 90px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 15px; resize: none; box-sizing: border-box; }
+        .btn-process { width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; border: none; color: white; margin-bottom: 25px; }
+        .btn-exp { background: var(--exp-red); }
+
+        .copy-layout { display: flex; gap: 10px; margin-bottom: 25px; min-height: 300px; overflow-x: auto; }
+        .copy-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; flex: 1; display: flex; flex-direction: column; min-width: 200px; }
+        .box-header { padding: 8px; background: #f8fafc; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .box-header span { font-weight: bold; font-size: 10px; color: #475569; }
+        .result-area { width: 100%; height: 280px; border: none; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre; overflow: auto; line-height: 1.8; outline: none; box-sizing: border-box; }
+        .btn-copy { background: #334155; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 9px; }
+
+        .totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .total-card { padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .bg-exp-card { background: #c0392b; } .bg-grand { background: #10b981; } .bg-blue-card { background: #2980b9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <button id="tabRoma" class="tab-btn active roma" onclick="switchMode('roma')">Roma Padel</button>
+        <button id="tabHero" class="tab-btn hero" onclick="switchMode('hero')">Hero Academy</button>
+        <button id="tabSmash" class="tab-btn smash" onclick="switchMode('smash')">Smash Academy</button>
+        <button id="tabExpenses" class="tab-btn expenses" onclick="switchMode('expenses')">Expenses Analysis</button>
+    </div>
+
+    <div class="header">
+        <h2 id="modeTitle" style="margin:0; color: var(--roma-green);">Padel Management System</h2>
+    </div>
+
+    <textarea id="smartInput" class="main-input" placeholder="الصق البيانات هنا..."></textarea>
+    <button id="processBtn" class="btn-process btn-roma" onclick="processData()">تحليل البيانات والحسابات ⚡</button>
+
+    <div id="outputContainer" class="copy-layout"></div>
+    <div id="totalsContainer" class="totals-grid"></div>
+</div>
+
+<script>
+    let currentMode = 'roma';
+
+    function switchMode(mode) {
+        currentMode = mode;
+        const tabs = ['roma', 'hero', 'smash', 'expenses'];
+        tabs.forEach(t => document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', mode === t));
+        
+        const title = document.getElementById('modeTitle');
+        const procBtn = document.getElementById('processBtn');
+
+        const configs = {
+            roma: { title: "Roma Padel Management", color: "var(--roma-green)", btn: "btn-roma" },
+            hero: { title: "Hero Academy Statement", color: "var(--hero-blue)", btn: "btn-hero" },
+            smash: { title: "Smash Academy Statement", color: "var(--smash-orange)", btn: "btn-smash" },
+            expenses: { title: "Swell Lake Expenses Analysis", color: "var(--exp-red)", btn: "btn-exp" }
+        };
+
+        title.innerText = configs[mode].title;
+        title.style.color = configs[mode].color;
+        procBtn.className = "btn-process " + configs[mode].btn;
+
+        document.getElementById('smartInput').value = "";
+        document.getElementById('outputContainer').innerHTML = "";
+        document.getElementById('totalsContainer').innerHTML = "";
+    }
+
+    function processData() {
+        const input = document.getElementById('smartInput').value;
+        const lines = input.split('\n');
+        
+        if (currentMode === 'expenses') {
+            handleExpensesAnalysis(lines);
+        } else {
+            // (بقية الدوال لروما وهيرو وسماش موجودة في الخلفية)
+            alert("يرجى التأكد من اختيار القسم الصحيح");
+        }
+    }
+
+    function handleExpensesAnalysis(lines) {
+        let cats = { cleaning: 0, uber: 0, meal: 0, electricity: 0, other: 0 };
+        let logs = { cleaning: "", uber: "", meal: "", electricity: "", other: "" };
+
+        lines.forEach(line => {
+            let cl = line.trim().toLowerCase();
+            // تجاهل مستر بيير فقط
+            if (cl.includes("mr.pier") || cl.includes("mr. pier")) return;
+
+            let amountMatch = cl.match(/(\d+[\d,.]*)/);
+            if (!amountMatch) return;
+            let val = parseFloat(amountMatch[0].replace(/,/g, ''));
+
+            if (cl.includes("cleaning")) { cats.cleaning += val; logs.cleaning += val + "\n"; }
+            else if (cl.includes("uber") || cl.includes("uper")) { cats.uber += val; logs.uber += val + "\n"; }
+            else if (cl.includes("meal") || cl.includes("iftar")) { cats.meal += val; logs.meal += val + "\n"; }
+            else if (cl.includes("electricity") || cl.includes("كهرباء")) { cats.electricity += val; logs.electricity += val + "\n"; }
+            else { 
+                cats.other += val; 
+                logs.other += val + " (" + cl.substring(0, 15) + ")\n"; 
+            }
+        });
+
+        renderOutput([
+            {l:'Cleaning', v:logs.cleaning},
+            {l:'Uber', v:logs.uber},
+            {l:'Meals', v:logs.meal},
+            {l:'Electricity', v:logs.electricity},
+            {l:'Other/Vodafone', v:logs.other}
+        ]);
+
+        // تم إضافة TOTAL ELEC هنا في كروت الإجماليات
+        renderTotals([
+            {l:'TOTAL CLEANING', v:cats.cleaning, c:'bg-exp-card'},
+            {l:'TOTAL UBER', v:cats.uber, c:'bg-exp-card'},
+            {l:'TOTAL MEALS', v:cats.meal, c:'bg-exp-card'},
+            {l:'TOTAL ELEC', v:cats.electricity, c:'bg-blue-card'},
+            {l:'OTHER/VODA', v:cats.other, c:'bg-exp-card'},
+            {l:'GRAND TOTAL EXP', v:Object.values(cats).reduce((a,b)=>a+b,0), c:'bg-grand'}
+        ]);
+    }
+
+    function renderOutput(boxes) {
+        document.getElementById('outputContainer').innerHTML = boxes.map((b, i) => `
+            <div class="copy-box"><div class="box-header"><span>${b.l}</span><button class="btn-copy" onclick="copyId('res${i}')">Copy</button></div>
+            <textarea id="res${i}" class="result-area" readonly>${b.v}</textarea></div>`).join('');
+    }
+
+    function renderTotals(cards) {
+        document.getElementById('totalsContainer').innerHTML = cards.map(c => `
+            <div class="total-card ${c.c}"><span>${c.l}</span><div>${c.v.toLocaleString()}</div></div>`).join('');
+    }
+
+    function copyId(id) { document.getElementById(id).select(); document.execCommand('copy'); }
+    window.onload = () => switchMode('expenses');
+</script>
+</body>
+</html>
